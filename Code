@@ -1,0 +1,203 @@
+/*
+A0 M2-M
+A1  M2-F
+A2  M1-M
+A3  M1-F
+A4  
+A5  SWMP
+A6  
+A7  
+******************
+D0  
+D1  Buzz
+D2  SWMP LED
+D3  
+D4  M2-LED
+D5  M2-Motor
+D6  M1-LED
+D7  
+D8  
+D9  
+D10 M1-MOTOR
+D11 
+D12 
+D13 
+D14 
+D15 
+D16 
+ */
+int SUMP = A5; // Common for both Motors
+int SUMP_LED = 3;
+int m1s;  //  Suamp
+
+//MOTOR 1 Pipe Line
+
+int M1_Min = A2;  // Green Wire
+int M1_Full = A3;  // Black Wire
+int M1_LED  = 6;
+int M1_motor = 5;  //Relay conection at 5
+
+
+//Motor 2   //
+
+int M2_Min = A0;  //Green Wire
+int M2_Full = A1;  // Black Wire
+int M2_motor = 10; //Relay Connection at 10
+int M2_LED  = 4;
+
+int buz = 1;
+
+int m1f;  // M1 Full
+int m1m;  // M1 Empty Motor start
+
+int m2f;  // M2 Full
+int m2m;  // M2 Empty Motor start
+int t;
+int f;
+int i1;     //motor status flag
+int i2;     //motor status flag
+int v = 900; //comparison variable(needs some adjustment)
+int b = 0; //buzzer flag
+int m1flag = 0; //motor f2lag
+byte sump_flag = 0; //sump flag
+int m2flag = 0; //motor2 flag
+
+void setup()
+{
+  Serial.begin(9600);
+  for (int a=0; a<8; a++) // Reset Evert thing
+  {
+    pinMode(a, INPUT);
+    digitalWrite(a, LOW);
+  }
+  
+  pinMode(SUMP, INPUT);
+  pinMode(M1_motor, OUTPUT);
+  pinMode(M2_motor, OUTPUT);
+  pinMode(M1_LED, OUTPUT);
+  pinMode(M2_LED, OUTPUT);
+  pinMode(SUMP_LED, OUTPUT);
+  pinMode(buz, OUTPUT);
+  digitalWrite(buz, LOW);
+}
+
+void loop()
+{
+
+  i1 = digitalRead(M1_motor);
+  m1s = analogRead(SUMP);
+  m1f = analogRead(M1_Full);
+  m1m = analogRead(M1_Min);
+
+  i2 = digitalRead(M2_motor);
+  m2f = analogRead(M2_Full);
+  m2m = analogRead(M2_Min);
+
+  Serial.print("\nSMP:= ");
+  Serial.print(m1s);
+  Serial.print(F(" | M1 Empty S:= "));
+  Serial.print(m1m);
+  Serial.print(F(" | M1 Full S:= "));
+  Serial.print(m1f);
+  Serial.print(F(" | M2 Empty S:= "));
+  Serial.print(m2m);
+  Serial.print(F("| **M2 Full S:= "));
+  Serial.print(m2f);
+ // Serial.print(i2);
+ 
+ Check_sump_Water();
+  //  1024  900
+  // if (m1s < v) //Storage tank empty // working
+  if (sump_flag) //Storage tank empty
+  {
+    Check_Motor_1(); // Check Motor 1
+    Check_Motor_2(); // Check Motor 2
+
+  }
+  else
+  {
+    // In case SUMP is LOW,  Switch Off Both Motors
+    digitalWrite(M1_motor, LOW);
+    digitalWrite(M2_motor, LOW);
+    digitalWrite(M1_LED, LOW);
+    digitalWrite(M2_LED, LOW);
+  }
+
+  delay(2000);
+}
+void Check_sump_Water()
+{
+  byte prev_sump_Flag = sump_flag;
+ 
+  if (m1s < v) //Storage tank empty M1S is greater then 900 meand Empty
+  {
+    sump_flag = 1;
+    digitalWrite(SUMP_LED, LOW); // SWITCH OFF LED
+  }
+  else
+  {
+    sump_flag = 0;
+    digitalWrite(SUMP_LED, HIGH);
+  }
+  
+  // to stop switching in case water level is low and start filling
+  
+  if (prev_sump_Flag != sump_flag)
+  {
+    delay(1000); //wait for 10 Minuts so that some water can be stored in SUMP tank
+  //  delay(600*1000); //wait for 10 Minuts so that some water can be stored in SUMP tank
+  }
+
+}
+void Check_Motor_1()
+{
+  if ((m1f > v) && (m1m > v) && (!digitalRead(M1_motor)))
+  {
+    m1flag = 1;
+
+  }
+  if ((m1f < v) && (m1m < v) && (digitalRead(M1_motor)))
+  {
+    m1flag = 0;
+  }
+
+
+  if (m1flag)
+  {
+    digitalWrite(M1_motor, HIGH);
+    digitalWrite(M1_LED, HIGH);
+  }
+  else
+  {
+    digitalWrite(M1_motor, LOW);
+    digitalWrite(M1_LED, LOW);
+  }
+
+}
+
+void Check_Motor_2()
+{
+  if ((m2f > v) && (m2m > v) && (!digitalRead(M2_motor)))
+  {
+    m2flag = 1;
+
+  }
+  if ((m2f < v) && (m2m < v) && (digitalRead(M2_motor)))
+  {
+    m2flag = 0;
+  }
+
+
+  if (m2flag)
+  {
+    digitalWrite(M2_motor, LOW);
+    digitalWrite(M2_LED, HIGH);
+  }
+  else
+  {
+    digitalWrite(M2_motor, HIGH);
+    digitalWrite(M2_LED, LOW);
+  }
+
+
+}
